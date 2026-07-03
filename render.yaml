@@ -1,19 +1,22 @@
 # One-click deploy config for Render (https://render.com)
-# Note: plan "starter" (paid) is required for the persistent disk that keeps
-# the SQLite database (user accounts, scan history) across restarts/deploys.
+#
+# This uses the FREE plan. Note: free web services have EPHEMERAL disk — the
+# SQLite database (accounts, scan history) resets whenever the service
+# restarts or redeploys. Great for testing / a public demo.
+#
+# To make data persistent later, upgrade to plan "starter" (~$7/mo) and add:
+#     disk:
+#       name: linksentry-data
+#       mountPath: /var/data
+#       sizeGB: 1
+# then set DATA_DIR=/var/data below.
 services:
   - type: web
     name: linksentry
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATA_DIR
-        value: /var/data
-    disk:
-      name: linksentry-data
-      mountPath: /var/data
-      sizeGB: 1
