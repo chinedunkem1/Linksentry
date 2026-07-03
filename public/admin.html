@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — LinkSentry</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img src="/logo.svg" alt="LinkSentry logo" width="36" height="36" />
+        <span class="brand-name">Link<span class="brand-accent">Sentry</span></span>
+      </a>
+      <nav class="site-nav">
+        <a href="/#scanner">Scanner</a>
+        <a href="/dashboard">Dashboard</a>
+      </nav>
+      <span class="plan-badge pro">Owner</span>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <div class="container">
+      <div class="dash-head">
+        <h1>Admin panel</h1>
+        <span class="muted" id="admin-email"></span>
+      </div>
+
+      <div id="denied" class="scan-error" hidden></div>
+
+      <div id="admin-content" hidden>
+        <!-- Stats -->
+        <div class="trust-strip" style="border-radius:14px;border:1px solid var(--border);margin-bottom:20px">
+          <div class="trust-inner" style="grid-template-columns:repeat(5,1fr)">
+            <div class="trust-item"><strong id="stat-users">–</strong><span>users</span></div>
+            <div class="trust-item"><strong id="stat-pro">–</strong><span>pro subscribers</span></div>
+            <div class="trust-item"><strong id="stat-scans">–</strong><span>total scans</span></div>
+            <div class="trust-item"><strong id="stat-today">–</strong><span>scans today</span></div>
+            <div class="trust-item"><strong id="stat-keys">–</strong><span>active API keys</span></div>
+          </div>
+        </div>
+
+        <!-- Users -->
+        <section class="panel" style="margin-bottom:20px">
+          <h2>Registered users</h2>
+          <p class="panel-sub">Every account on the platform, newest first.</p>
+          <table class="data-table">
+            <thead><tr><th>#</th><th>Email</th><th>Plan</th><th>Joined</th><th>Scans</th><th>API keys</th><th>Last activity</th></tr></thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </section>
+
+        <!-- Recent scans -->
+        <section class="panel">
+          <h2>Latest scans (all users)</h2>
+          <p class="panel-sub">The 25 most recent scans across web, bulk, and API.</p>
+          <table class="data-table">
+            <thead><tr><th>URL</th><th>Verdict</th><th>Score</th><th>Source</th><th>User</th><th>When</th></tr></thead>
+            <tbody id="scans-body"></tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (async () => {
+      const $ = (id) => document.getElementById(id);
+      const td = (content) => {
+        const cell = document.createElement('td');
+        if (content instanceof Node) cell.appendChild(content); else cell.textContent = content;
+        return cell;
+      };
+      const chip = (verdict) => {
+        const s = document.createElement('span');
+        s.className = 'verdict-chip ' + verdict;
+        s.textContent = verdict === 'safe' ? 'Low risk' : verdict === 'caution' ? 'Caution' : 'High risk';
+        return s;
+      };
+      const when = (iso) => iso ? new Date(iso + 'Z').toLocaleString() : '—';
+
+      try {
+        const meRes = await fetch('/api/me');
+        const { user } = await meRes.json();
+        if (!user) { location.href = '/login'; return; }
+        $('admin-email').textContent = user.email;
+
+        const res = await fetch('/api/admin/overview');
+        if (res.status === 403) {
+          $('denied').textContent = 'This page is for the site owner only. Your account (' + user.email + ') is not in ADMIN_EMAILS.';
+          $('denied').hidden = false;
+          return;
+        }
+        const data = await res.json();
+
+        $('stat-users').textContent = data.totals.users;
+        $('stat-pro').textContent = data.totals.proUsers;
+        $('stat-scans').textContent = data.totals.scans;
+        $('stat-today').textContent = data.totals.scansToday;
+        $('stat-keys').textContent = data.totals.apiKeys;
+
+        const ub = $('users-body');
+        for (const u of data.users) {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(String(u.id)));
+          tr.appendChild(td(u.email));
+          const plan = document.createElement('span');
+          plan.className = 'plan-badge ' + u.plan;
+          plan.textContent = u.plan;
+          plan.style.marginLeft = '0';
+          tr.appendChild(td(plan));
+          tr.appendChild(td(when(u.createdAt)));
+          tr.appendChild(td(String(u.scanCount)));
+          tr.appendChild(td(String(u.activeKeys)));
+          tr.appendChild(td(u.lastScanAt ? when(u.lastScanAt) : '—'));
+          ub.appendChild(tr);
+        }
+
+        const sb = $('scans-body');
+        for (const s of data.recentScans) {
+          const tr = document.createElement('tr');
+          const urlCell = td(s.url); urlCell.className = 'cell-url';
+          tr.appendChild(urlCell);
+          tr.appendChild(td(chip(s.verdict)));
+          tr.appendChild(td(String(s.score)));
+          tr.appendChild(td(s.source));
+          tr.appendChild(td(s.email || 'anonymous'));
+          tr.appendChild(td(when(s.createdAt)));
+          sb.appendChild(tr);
+        }
+
+        $('admin-content').hidden = false;
+      } catch (err) {
+        $('denied').textContent = 'Could not load admin data: ' + err.message;
+        $('denied').hidden = false;
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkSentry — Free URL Safety Scanner. Know Before You Click.</title>
+  <meta name="description" content="Scan any link before you click it. LinkSentry detects phishing, brand impersonation, hidden redirects, and freshly registered scam domains — free and instant." />
+  <meta property="og:title" content="LinkSentry — Know Before You Click" />
+  <meta property="og:description" content="Free, instant URL safety scanner. Reveal hidden redirects, phishing patterns, and scam domains before you click." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img src="/logo.svg" alt="LinkSentry logo" width="36" height="36" />
+        <span class="brand-name">Link<span class="brand-accent">Sentry</span></span>
+      </a>
+      <nav class="site-nav">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/docs">API</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a href="/login" class="btn btn-small" id="nav-account">Sign in</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero + Scanner -->
+    <section class="hero" id="scanner">
+      <div class="container">
+        <div class="hero-badge">Free · Instant · No signup required</div>
+        <h1>Know before you click.</h1>
+        <p class="hero-sub">
+          Paste any link and LinkSentry inspects it in seconds — exposing phishing patterns,
+          hidden redirects, brand impersonation, and freshly registered scam domains.
+        </p>
+
+        <form id="scan-form" class="scan-box" autocomplete="off">
+          <div class="scan-input-wrap">
+            <svg class="scan-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <input id="url-input" type="text" inputmode="url" placeholder="Paste a link — e.g. https://example.com/offer" spellcheck="false" required />
+          </div>
+          <button type="submit" class="btn btn-primary" id="scan-btn">
+            <span class="btn-label">Scan link</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+        </form>
+        <p class="scan-note">We never open the link in your browser — analysis runs safely on our servers.</p>
+
+        <!-- Results -->
+        <div id="results" class="results" hidden>
+          <div class="results-header">
+            <div class="gauge-wrap">
+              <svg class="gauge" viewBox="0 0 120 120">
+                <circle class="gauge-track" cx="60" cy="60" r="52" />
+                <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="52" />
+              </svg>
+              <div class="gauge-center">
+                <span id="gauge-score">0</span>
+                <small>risk</small>
+              </div>
+            </div>
+            <div class="verdict-wrap">
+              <div class="verdict-pill" id="verdict-pill">—</div>
+              <p class="verdict-text" id="verdict-text"></p>
+              <div class="scanned-url" id="scanned-url"></div>
+            </div>
+          </div>
+
+          <div id="redirect-panel" class="redirect-panel" hidden>
+            <h3>Redirect chain</h3>
+            <ol id="redirect-list" class="redirect-list"></ol>
+          </div>
+
+          <div id="domain-panel" class="domain-panel" hidden></div>
+
+          <div id="screenshot-panel" class="screenshot-panel" hidden>
+            <h3>Visual preview <span class="shot-note">— rendered in a remote sandbox, not on your device</span></h3>
+            <img id="screenshot-img" loading="lazy" alt="" />
+          </div>
+
+          <h3 class="findings-title">Detailed findings</h3>
+          <ul id="findings" class="findings"></ul>
+
+          <div class="results-footer">
+            <span id="scan-meta"></span>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="copy-report-btn" hidden>Copy report link</button>
+              <button class="btn btn-ghost" id="scan-again">Scan another link</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="scan-error" class="scan-error" hidden></div>
+      </div>
+    </section>
+
+    <!-- Trust strip -->
+    <section class="trust-strip">
+      <div class="container trust-inner">
+        <div class="trust-item"><strong>25+</strong><span>security checks per scan</span></div>
+        <div class="trust-item"><strong>&lt; 5s</strong><span>average scan time</span></div>
+        <div class="trust-item"><strong>0</strong><span>data stored about you</span></div>
+        <div class="trust-item"><strong>100%</strong><span>free to use</span></div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section" id="how">
+      <div class="container">
+        <h2>How it works</h2>
+        <p class="section-sub">Three layers of analysis, one clear verdict.</p>
+        <div class="grid grid-3">
+          <div class="card">
+            <div class="card-num">1</div>
+            <h3>Structural analysis</h3>
+            <p>We dissect the URL itself: look-alike characters, embedded credentials, deceptive subdomains, high-abuse domain extensions, and the wording tricks phishers rely on.</p>
+          </div>
+          <div class="card">
+            <div class="card-num">2</div>
+            <h3>Live inspection</h3>
+            <p>Our servers safely follow every redirect the link takes — shorteners included — to reveal the true final destination and flag encryption downgrades along the way.</p>
+          </div>
+          <div class="card">
+            <div class="card-num">3</div>
+            <h3>Domain intelligence</h3>
+            <p>We check public registry records for the domain's age. Scam sites live on domains registered days ago; established businesses don't.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section section-alt" id="features">
+      <div class="container">
+        <h2>Built for real-world threats</h2>
+        <p class="section-sub">Every check maps to a technique attackers actually use.</p>
+        <div class="grid grid-3">
+          <div class="card"><h3>🎣 Phishing detection</h3><p>Brand impersonation, credential-bait keywords, and look-alike punycode domains are flagged before you ever load the page.</p></div>
+          <div class="card"><h3>🔗 Shortener unmasking</h3><p>bit.ly, tinyurl and 15+ other shorteners are followed to their true destination — you see where the link really goes.</p></div>
+          <div class="card"><h3>🕵️ Redirect tracing</h3><p>The full hop-by-hop redirect chain is displayed, exposing cross-domain forwarding and HTTPS downgrades.</p></div>
+          <div class="card"><h3>📅 Domain age lookup</h3><p>Live registry (RDAP) data reveals freshly registered domains — the strongest single indicator of a scam.</p></div>
+          <div class="card"><h3>🔒 Encryption checks</h3><p>TLS certificate validation, plain-HTTP pages, and encrypted-to-unencrypted downgrades are called out so your data never travels in the clear.</p></div>
+          <div class="card"><h3>🛡️ Threat database checks</h3><p>Every scan is verified against Google Safe Browsing's live blocklist — the same data protecting Chrome — plus optional abuse.ch malware feeds.</p></div>
+          <div class="card"><h3>📸 Visual preview</h3><p>See a screenshot of the destination page rendered in a remote sandbox — look before you go, without the page ever touching your device.</p></div>
+          <div class="card"><h3>🌍 Hosting intelligence</h3><p>Who hosts the site, in which country, on what network — infrastructure tells a story that scammers can't easily fake.</p></div>
+          <div class="card"><h3>🧰 Site fingerprint</h3><p>Server software, tech stack, and a security-header grade reveal how professionally the destination is run.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="section" id="pricing">
+      <div class="container">
+        <h2>Simple pricing</h2>
+        <p class="section-sub">Free for everyone. Power tools for teams.</p>
+        <div class="grid grid-3 pricing-grid">
+          <div class="card price-card">
+            <h3>Free</h3>
+            <div class="price">$0<span>/forever</span></div>
+            <ul>
+              <li>Unlimited manual scans</li>
+              <li>Full 15-point analysis</li>
+              <li>Scan history &amp; shareable reports</li>
+              <li>Bulk scanning (5 links per batch)</li>
+              <li>API access — 100 scans/month</li>
+            </ul>
+            <a href="/signup" class="btn btn-ghost btn-block">Create free account</a>
+          </div>
+          <div class="card price-card price-featured">
+            <div class="price-tag">Most popular</div>
+            <h3>Pro</h3>
+            <div class="price">$9<span>/month</span></div>
+            <ul>
+              <li>Everything in Free</li>
+              <li>Bulk scanning — 20 links per batch</li>
+              <li>API access — 10,000 scans/month</li>
+              <li>Priority threat-feed checks</li>
+            </ul>
+            <a href="/signup" class="btn btn-primary btn-block">Get started</a>
+          </div>
+          <div class="card price-card">
+            <div class="price-tag">Developers</div>
+            <h3>API</h3>
+            <div class="price">From $0<span>/month</span></div>
+            <ul>
+              <li>REST API with quota headers</li>
+              <li>Full JSON scan reports</li>
+              <li>Key management dashboard</li>
+              <li>Simple, documented, fast</li>
+            </ul>
+            <a href="/docs" class="btn btn-ghost btn-block">Read the docs</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section section-alt" id="faq">
+      <div class="container container-narrow">
+        <h2>Frequently asked questions</h2>
+        <details class="faq-item">
+          <summary>Is it safe to scan a suspicious link here?</summary>
+          <p>Yes. The link is never opened in your browser. Our servers fetch only the response headers needed to trace redirects — no page content executes on your device.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Does a "Safe" verdict guarantee the site is legitimate?</summary>
+          <p>No scanner can promise that. A low risk score means none of our structural, network, or registry checks raised a flag. Always stay cautious with pages that ask for passwords or payment details.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Do you store the links I scan?</summary>
+          <p>Scans are processed in memory and returned to you. We don't build profiles, set tracking cookies, or sell data.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Can I integrate LinkSentry into my own product?</summary>
+          <p>That's what the upcoming API plan is for — REST endpoints, webhooks, and volume pricing. Join the waitlist and we'll notify you at launch.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="/logo.svg" alt="" width="28" height="28" />
+        <span>Link<span class="brand-accent">Sentry</span></span>
+      </div>
+      <nav style="display:flex;gap:20px">
+        <a href="/docs" style="color:var(--text-dim);text-decoration:none;font-size:0.84rem">API docs</a>
+        <a href="/privacy" style="color:var(--text-dim);text-decoration:none;font-size:0.84rem">Privacy</a>
+        <a href="/terms" style="color:var(--text-dim);text-decoration:none;font-size:0.84rem">Terms</a>
+      </nav>
+      <p>© 2026 LinkSentry. Scan responsibly — a scanner assists your judgment, it doesn't replace it.</p>
+    </div>
+  </footer>
+
+  <script src="/render.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /r/
+Disallow: /api/
+
+Sitemap: https://linksentry.app/sitemap.xml

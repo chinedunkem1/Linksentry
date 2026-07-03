@@ -1,0 +1,19 @@
+# One-click deploy config for Render (https://render.com)
+# Note: plan "starter" (paid) is required for the persistent disk that keeps
+# the SQLite database (user accounts, scan history) across restarts/deploys.
+services:
+  - type: web
+    name: linksentry
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: linksentry-data
+      mountPath: /var/data
+      sizeGB: 1

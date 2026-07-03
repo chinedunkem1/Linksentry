@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lsGrad" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield -->
+  <path d="M256 40 L432 104 V248 C432 356 358 428 256 472 C154 428 80 356 80 248 V104 Z"
+        fill="url(#lsGrad)"/>
+  <path d="M256 76 L398 128 V248 C398 336 338 398 256 436 C174 398 114 336 114 248 V128 Z"
+        fill="#0b1220"/>
+  <!-- Chain link -->
+  <g stroke="url(#lsGrad)" stroke-width="34" stroke-linecap="round" fill="none">
+    <path d="M232 292 L208 316 C186 338 152 338 130 316 C108 294 108 260 130 238 L178 190 C200 168 234 168 256 190"
+          transform="translate(50 10)"/>
+    <path d="M280 220 L304 196 C326 174 360 174 382 196 C404 218 404 252 382 274 L334 322 C312 344 278 344 256 322"
+          transform="translate(-50 -10)"/>
+  </g>
+</svg>

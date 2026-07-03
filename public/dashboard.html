@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — LinkSentry</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img src="/logo.svg" alt="LinkSentry logo" width="36" height="36" />
+        <span class="brand-name">Link<span class="brand-accent">Sentry</span></span>
+      </a>
+      <nav class="site-nav">
+        <a href="/#scanner">Scanner</a>
+        <a href="/docs">API docs</a>
+        <a href="/#pricing">Pricing</a>
+      </nav>
+      <button class="btn btn-small" id="logout-btn">Sign out</button>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <div class="container">
+      <div class="dash-head">
+        <h1>Dashboard <span class="plan-badge free" id="plan-badge">…</span></h1>
+        <span class="muted" id="account-email"></span>
+      </div>
+
+      <div class="dash-grid">
+        <!-- API usage -->
+        <section class="panel">
+          <h2>API usage</h2>
+          <p class="panel-sub">Monthly quota across all your API keys.</p>
+          <div class="usage-bar"><div id="usage-fill" style="width:0%"></div></div>
+          <p class="muted" id="usage-text">Loading…</p>
+          <p class="muted" style="margin-top:14px">
+            Integrate scanning into your own product — see the <a href="/docs" style="color:var(--accent)">API documentation</a>.
+          </p>
+          <div id="upgrade-box" hidden style="margin-top:16px">
+            <button class="btn btn-primary" id="upgrade-btn">Upgrade to Pro — $9/mo</button>
+            <p class="muted" id="upgrade-note" style="margin-top:8px"></p>
+          </div>
+        </section>
+
+        <!-- API keys -->
+        <section class="panel">
+          <h2>API keys</h2>
+          <p class="panel-sub">Authenticate <code style="font-family:var(--mono);color:var(--accent)">POST /api/v1/scan</code> with the <span style="font-family:var(--mono)">X-Api-Key</span> header.</p>
+          <div id="new-key-box" hidden>
+            <p class="muted">Your new key — <strong style="color:var(--caution)">copy it now, it won't be shown again:</strong></p>
+            <div class="key-reveal" id="new-key-value"></div>
+            <button class="btn btn-ghost" id="copy-key-btn" style="margin-bottom:14px">Copy key</button>
+          </div>
+          <table class="data-table" id="keys-table" hidden>
+            <thead><tr><th>Key</th><th>Label</th><th>Used (mo.)</th><th></th></tr></thead>
+            <tbody id="keys-body"></tbody>
+          </table>
+          <div class="empty-state" id="keys-empty" hidden>No API keys yet.</div>
+          <button class="btn btn-primary" id="create-key-btn" style="margin-top:14px">Generate new key</button>
+        </section>
+
+        <!-- Bulk scan -->
+        <section class="panel panel-full">
+          <h2>Bulk scan</h2>
+          <p class="panel-sub" id="bulk-sub">Paste one URL per line.</p>
+          <textarea class="bulk-input" id="bulk-input" placeholder="https://example.com&#10;https://another-site.com/offer&#10;bit.ly/abc123"></textarea>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="bulk-btn">Scan all</button>
+            <span class="muted" id="bulk-status"></span>
+          </div>
+          <table class="data-table" id="bulk-table" hidden style="margin-top:18px">
+            <thead><tr><th>URL</th><th>Verdict</th><th>Score</th><th>Report</th></tr></thead>
+            <tbody id="bulk-body"></tbody>
+          </table>
+        </section>
+
+        <!-- History -->
+        <section class="panel panel-full">
+          <h2>Scan history</h2>
+          <p class="panel-sub">Your last 100 scans across web, bulk, and API.</p>
+          <table class="data-table" id="history-table" hidden>
+            <thead><tr><th>URL</th><th>Verdict</th><th>Score</th><th>Source</th><th>When</th><th>Report</th></tr></thead>
+            <tbody id="history-body"></tbody>
+          </table>
+          <div class="empty-state" id="history-empty" hidden>
+            No scans yet — <a href="/#scanner" style="color:var(--accent)">scan your first link</a>.
+          </div>
+          <button class="link-btn" id="clear-history-btn" style="margin-top:14px" hidden>Clear history</button>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>

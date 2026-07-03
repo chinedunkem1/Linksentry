@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Documentation — LinkSentry</title>
+  <meta name="description" content="Integrate LinkSentry's URL safety scanning into your product with a simple REST API." />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img src="/logo.svg" alt="LinkSentry logo" width="36" height="36" />
+        <span class="brand-name">Link<span class="brand-accent">Sentry</span></span>
+      </a>
+      <nav class="site-nav">
+        <a href="/#scanner">Scanner</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/dashboard">Dashboard</a>
+      </nav>
+      <a href="/signup" class="btn btn-small">Get an API key</a>
+    </div>
+  </header>
+
+  <main class="doc-main">
+    <div class="container container-narrow">
+      <h1>API documentation</h1>
+      <p class="doc-sub">Add link-safety scanning to your product with two REST endpoints. Create a free account, generate a key in the <a href="/dashboard" style="color:var(--accent)">dashboard</a>, and you're live in minutes.</p>
+
+      <h2>Authentication</h2>
+      <p>Pass your API key in the <code>X-Api-Key</code> header on every request. Keys look like <code>lsk_…</code> and can be created and revoked from your dashboard.</p>
+      <pre class="code-block"><code>X-Api-Key: lsk_your_key_here</code></pre>
+
+      <h2>Quotas</h2>
+      <ul>
+        <li><strong>Free plan:</strong> 100 scans per calendar month</li>
+        <li><strong>Pro plan:</strong> 10,000 scans per calendar month</li>
+      </ul>
+      <p>Every response includes <code>X-Quota-Limit</code> and <code>X-Quota-Used</code> headers. Exceeding the quota returns <code>429</code>.</p>
+
+      <h2><span class="endpoint-tag">POST</span>/api/v1/scan</h2>
+      <p>Scans a URL and returns the full analysis.</p>
+      <h3>Request</h3>
+      <pre class="code-block"><code>curl -X POST https://your-domain.com/api/v1/scan \
+  -H "X-Api-Key: lsk_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/some-link"}'</code></pre>
+
+      <h3>Response <code>200</code></h3>
+      <pre class="code-block"><code>{
+  "url": "https://example.com/some-link",
+  "finalUrl": "https://example.com/some-link",
+  "verdict": "safe",            // safe | caution | dangerous
+  "score": 0,                   // 0–100 risk score
+  "reachable": true,
+  "domain": "example.com",
+  "domainInfo": {
+    "registered": "1995-08-14", "ageDays": 11281,
+    "registrar": "ICANN", "expires": "2027-08-13",
+    "nameservers": ["a.iana-servers.net", "b.iana-servers.net"]
+  },
+  "certificate": { "issuer": "DigiCert Inc", "validTo": "2027-01-15" },
+  "hosting": {
+    "ip": "93.184.216.34", "country": "United States", "city": "Norwell",
+    "org": "Edgecast Inc.", "asn": "AS15133", "hosting": true
+  },
+  "securityHeaders": { "grade": "B", "present": ["HSTS", "X-Frame-Options"], "missing": ["Content-Security-Policy"] },
+  "technology": { "server": "nginx", "stack": ["Cloudflare"] },
+  "reputation": { "sources": ["Google Safe Browsing"], "flaggedBy": [] },
+  "screenshotUrl": "https://s.wordpress.com/mshots/v1/…",
+  "pageTitle": "Example Domain",
+  "redirectChain": [ { "url": "https://example.com/some-link", "status": 200 } ],
+  "findings": [
+    {
+      "id": "https",
+      "severity": "info",       // info | low | medium | high | critical
+      "title": "Uses HTTPS",
+      "detail": "The connection to this site is encrypted…"
+    }
+  ],
+  "reportId": "Ab3xYz12",       // shareable report at /r/Ab3xYz12
+  "scannedAt": "2026-07-03T09:00:00.000Z",
+  "durationMs": 2140
+}</code></pre>
+
+      <h3>Errors</h3>
+      <ul>
+        <li><code>400</code> — invalid or missing URL</li>
+        <li><code>401</code> — missing, malformed, or revoked API key</li>
+        <li><code>429</code> — monthly quota exceeded</li>
+      </ul>
+
+      <h2><span class="endpoint-tag">GET</span>/api/v1/usage</h2>
+      <p>Returns your current month's usage across all keys.</p>
+      <pre class="code-block"><code>curl https://your-domain.com/api/v1/usage \
+  -H "X-Api-Key: lsk_your_key_here"
+
+{ "month": "2026-07", "used": 42, "quota": 10000 }</code></pre>
+
+      <h2>Verdict guidance</h2>
+      <ul>
+        <li><code>safe</code> (score &lt; 25) — no significant indicators; treat as low risk.</li>
+        <li><code>caution</code> (25–59) — one or more suspicious traits; warn the user.</li>
+        <li><code>dangerous</code> (score ≥ 60) — strong phishing/malware indicators; block or strongly warn.</li>
+      </ul>
+
+      <h2>Fair use</h2>
+      <p>Automated scanning of links you receive (email pipelines, chat moderation, form validation) is exactly what the API is for. Don't use it to probe infrastructure you don't own or to harass third-party services.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="/logo.svg" alt="" width="28" height="28" />
+        <span>Link<span class="brand-accent">Sentry</span></span>
+      </div>
+      <nav style="display:flex;gap:20px">
+        <a href="/privacy" style="color:var(--text-dim);text-decoration:none;font-size:0.84rem">Privacy</a>
+        <a href="/terms" style="color:var(--text-dim);text-decoration:none;font-size:0.84rem">Terms</a>
+      </nav>
+      <p>© 2026 LinkSentry.</p>
+    </div>
+  </footer>
+</body>
+</html>
