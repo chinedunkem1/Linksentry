@@ -40,7 +40,7 @@
     });
     const data = await res.json();
     if (res.status === 401 && path !== '/api/me') { location.href = '/login'; throw new Error('unauthorized'); }
-    if (!res.ok) throw new Error(data.error === 'waitlist' ? data.message : (data.error || 'Request failed'));
+    if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
   }
 
@@ -51,9 +51,6 @@
     if (!data.user) { location.href = '/login'; return; }
     me = data.user;
     $('account-email').textContent = me.email;
-    const badge = $('plan-badge');
-    badge.textContent = me.plan;
-    badge.className = 'plan-badge ' + me.plan;
 
     const pct = Math.min(100, (me.apiUsage.used / me.apiUsage.quota) * 100);
     $('usage-fill').style.width = pct + '%';
@@ -61,14 +58,7 @@
       `${me.apiUsage.used.toLocaleString()} / ${me.apiUsage.quota.toLocaleString()} API scans used in ${me.apiUsage.month}`;
 
     $('bulk-sub').textContent =
-      `Paste one URL per line — up to ${me.bulkLimit} per batch on your ${me.plan} plan.`;
-
-    if (me.plan !== 'pro') {
-      $('upgrade-box').hidden = false;
-      $('upgrade-note').textContent = me.billingConfigured
-        ? 'Instant upgrade via secure Stripe checkout.'
-        : 'Pro is launching soon — clicking joins the priority waitlist.';
-    }
+      `Paste one URL per line — up to ${me.bulkLimit} per batch, unlimited batches.`;
 
     if (me.isAdmin) {
       const nav = document.querySelector('.site-nav');
@@ -78,9 +68,6 @@
       nav.appendChild(link);
     }
 
-    if (new URLSearchParams(location.search).get('upgraded') === '1' && me.plan === 'pro') {
-      toast('Welcome to LinkSentry Pro! 🎉');
-    }
   }
 
   /* ---------------- API keys ---------------- */
@@ -203,16 +190,7 @@
     loadHistory();
   });
 
-  /* ---------------- upgrade + logout ---------------- */
-
-  $('upgrade-btn').addEventListener('click', async () => {
-    try {
-      const data = await api('/api/billing/checkout', { method: 'POST', body: '{}' });
-      if (data.url) location.href = data.url;
-    } catch (err) {
-      toast(err.message);
-    }
-  });
+  /* ---------------- logout ---------------- */
 
   $('logout-btn').addEventListener('click', async () => {
     await fetch('/api/auth/logout', { method: 'POST' });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — LinkSentry</title>
+  <title>Admin — Linkaware</title>
   <meta name="robots" content="noindex" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,14 +15,14 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="/">
-        <img src="/logo.svg" alt="LinkSentry logo" width="36" height="36" />
-        <span class="brand-name">Link<span class="brand-accent">Sentry</span></span>
+        <img src="/logo.svg" alt="Linkaware logo" width="36" height="36" />
+        <span class="brand-name">Link<span class="brand-accent">aware</span></span>
       </a>
       <nav class="site-nav">
         <a href="/#scanner">Scanner</a>
         <a href="/dashboard">Dashboard</a>
       </nav>
-      <span class="plan-badge pro">Owner</span>
+      <span class="owner-badge">Owner</span>
     </div>
   </header>
 
@@ -40,7 +40,7 @@
         <div class="trust-strip" style="border-radius:14px;border:1px solid var(--border);margin-bottom:20px">
           <div class="trust-inner" style="grid-template-columns:repeat(5,1fr)">
             <div class="trust-item"><strong id="stat-users">–</strong><span>users</span></div>
-            <div class="trust-item"><strong id="stat-pro">–</strong><span>pro subscribers</span></div>
+            <div class="trust-item"><strong id="stat-apiscans">–</strong><span>API scans</span></div>
             <div class="trust-item"><strong id="stat-scans">–</strong><span>total scans</span></div>
             <div class="trust-item"><strong id="stat-today">–</strong><span>scans today</span></div>
             <div class="trust-item"><strong id="stat-keys">–</strong><span>active API keys</span></div>
@@ -52,7 +52,7 @@
           <h2>Registered users</h2>
           <p class="panel-sub">Every account on the platform, newest first.</p>
           <table class="data-table">
-            <thead><tr><th>#</th><th>Email</th><th>Plan</th><th>Joined</th><th>Scans</th><th>API keys</th><th>Last activity</th></tr></thead>
+            <thead><tr><th>#</th><th>Email</th><th>Joined</th><th>Scans</th><th>API keys</th><th>Last activity</th></tr></thead>
             <tbody id="users-body"></tbody>
           </table>
         </section>
@@ -101,7 +101,7 @@
         const data = await res.json();
 
         $('stat-users').textContent = data.totals.users;
-        $('stat-pro').textContent = data.totals.proUsers;
+        $('stat-apiscans').textContent = data.totals.apiScans;
         $('stat-scans').textContent = data.totals.scans;
         $('stat-today').textContent = data.totals.scansToday;
         $('stat-keys').textContent = data.totals.apiKeys;
@@ -111,11 +111,6 @@
           const tr = document.createElement('tr');
           tr.appendChild(td(String(u.id)));
           tr.appendChild(td(u.email));
-          const plan = document.createElement('span');
-          plan.className = 'plan-badge ' + u.plan;
-          plan.textContent = u.plan;
-          plan.style.marginLeft = '0';
-          tr.appendChild(td(plan));
           tr.appendChild(td(when(u.createdAt)));
           tr.appendChild(td(String(u.scanCount)));
           tr.appendChild(td(String(u.activeKeys)));

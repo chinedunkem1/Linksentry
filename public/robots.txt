@@ -4,4 +4,4 @@ Disallow: /dashboard
 Disallow: /r/
 Disallow: /api/
 
-Sitemap: https://linksentry.app/sitemap.xml
+Sitemap: https://Linkaware.app/sitemap.xml

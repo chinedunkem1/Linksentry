@@ -1,4 +1,4 @@
-process.env.DATA_DIR = require('os').tmpdir() + '/linksentry-test-' + Date.now();
+process.env.DATA_DIR = require('os').tmpdir() + '/linkaware-test-' + Date.now();
 
 const { test } = require('node:test');
 const assert = require('node:assert');
@@ -14,7 +14,6 @@ test('password hashing round-trips and rejects wrong passwords', () => {
 test('signup validates input and prevents duplicates', () => {
   const user = auth.signup('test@example.com', 'password123');
   assert.equal(user.email, 'test@example.com');
-  assert.equal(user.plan, 'free');
   assert.throws(() => auth.signup('test@example.com', 'password123'), /already exists/);
   assert.throws(() => auth.signup('not-an-email', 'password123'), /valid email/);
   assert.throws(() => auth.signup('short@example.com', 'short'), /8 characters/);
@@ -42,7 +41,7 @@ test('API keys authenticate, count usage, and can be revoked', () => {
 
   const first = apikeys.authenticateKey(key);
   assert.equal(first.used, 1);
-  assert.equal(first.quota, 100);
+  assert.equal(first.quota, apikeys.MONTHLY_QUOTA);
   assert.equal(apikeys.authenticateKey(key).used, 2);
 
   const listed = apikeys.listKeys(user.id);
@@ -51,5 +50,5 @@ test('API keys authenticate, count usage, and can be revoked', () => {
 
   apikeys.revokeKey(user.id, listed[0].id);
   assert.throws(() => apikeys.authenticateKey(key), /revoked/);
-  assert.throws(() => apikeys.authenticateKey('lsk_bogus'), /Invalid/);
+  assert.throws(() => apikeys.authenticateKey('lak_bogus'), /Invalid/);
 });

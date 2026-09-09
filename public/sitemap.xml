@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://linksentry.app/</loc><priority>1.0</priority></url>
-  <url><loc>https://linksentry.app/docs</loc><priority>0.8</priority></url>
-  <url><loc>https://linksentry.app/signup</loc><priority>0.6</priority></url>
-  <url><loc>https://linksentry.app/privacy</loc><priority>0.3</priority></url>
-  <url><loc>https://linksentry.app/terms</loc><priority>0.3</priority></url>
+  <url><loc>https://Linkaware.app/</loc><priority>1.0</priority></url>
+  <url><loc>https://Linkaware.app/docs</loc><priority>0.8</priority></url>
+  <url><loc>https://Linkaware.app/signup</loc><priority>0.6</priority></url>
+  <url><loc>https://Linkaware.app/privacy</loc><priority>0.3</priority></url>
+  <url><loc>https://Linkaware.app/terms</loc><priority>0.3</priority></url>
 </urlset>

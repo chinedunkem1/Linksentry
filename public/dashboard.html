@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — LinkSentry</title>
+  <title>Dashboard — Linkaware</title>
   <meta name="robots" content="noindex" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,8 +15,8 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="/">
-        <img src="/logo.svg" alt="LinkSentry logo" width="36" height="36" />
-        <span class="brand-name">Link<span class="brand-accent">Sentry</span></span>
+        <img src="/logo.svg" alt="Linkaware logo" width="36" height="36" />
+        <span class="brand-name">Link<span class="brand-accent">aware</span></span>
       </a>
       <nav class="site-nav">
         <a href="/#scanner">Scanner</a>
@@ -30,7 +30,7 @@
   <main class="dash-main">
     <div class="container">
       <div class="dash-head">
-        <h1>Dashboard <span class="plan-badge free" id="plan-badge">…</span></h1>
+        <h1>Dashboard</h1>
         <span class="muted" id="account-email"></span>
       </div>
 
@@ -38,16 +38,14 @@
         <!-- API usage -->
         <section class="panel">
           <h2>API usage</h2>
-          <p class="panel-sub">Monthly quota across all your API keys.</p>
+          <p class="panel-sub">This month, across all your API keys.</p>
           <div class="usage-bar"><div id="usage-fill" style="width:0%"></div></div>
           <p class="muted" id="usage-text">Loading…</p>
           <p class="muted" style="margin-top:14px">
-            Integrate scanning into your own product — see the <a href="/docs" style="color:var(--accent)">API documentation</a>.
+            Everything here is free — this cap is just fair use so no single key
+            drains the shared threat-feed budget. Integrate scanning into your own
+            product with the <a href="/docs" style="color:var(--accent)">API documentation</a>.
           </p>
-          <div id="upgrade-box" hidden style="margin-top:16px">
-            <button class="btn btn-primary" id="upgrade-btn">Upgrade to Pro — $9/mo</button>
-            <p class="muted" id="upgrade-note" style="margin-top:8px"></p>
-          </div>
         </section>
 
         <!-- API keys -->

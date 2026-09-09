@@ -17,7 +17,6 @@ const db = require('./lib/db');
 const { scanUrl } = require('./lib/scanner');
 const auth = require('./lib/auth');
 const apikeys = require('./lib/apikeys');
-const billing = require('./lib/billing');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,10 +24,7 @@ const PORT = process.env.PORT || 3000;
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
-app.use(express.json({
-  limit: '64kb',
-  verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); },
-}));
+app.use(express.json({ limit: '64kb' }));
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -84,17 +80,17 @@ app.post('/api/scan', scanLimiter, async (req, res) => {
   }
 });
 
-const BULK_LIMITS = { free: 5, pro: 20 };
+/* Fair-use batch size — keeps one request from monopolising the scanner. */
+const BULK_LIMIT = 25;
 
 app.post('/api/bulk-scan', auth.requireUser, async (req, res) => {
-  const limit = BULK_LIMITS[req.user.plan] || BULK_LIMITS.free;
   const urls = [...new Set((Array.isArray(req.body?.urls) ? req.body.urls : [])
     .map((u) => String(u).trim()).filter(Boolean))];
 
   if (urls.length === 0) return res.status(400).json({ error: 'Provide at least one URL.' });
-  if (urls.length > limit) {
+  if (urls.length > BULK_LIMIT) {
     return res.status(400).json({
-      error: `Your ${req.user.plan} plan allows ${limit} URLs per batch${req.user.plan === 'free' ? ' — upgrade to Pro for larger batches' : ''}. You submitted ${urls.length}.`,
+      error: `Please scan at most ${BULK_LIMIT} URLs per batch (you submitted ${urls.length}). Split the list and run it again — there's no limit on how many batches you can do.`,
     });
   }
 
@@ -122,7 +118,7 @@ app.post('/api/auth/signup', authLimiter, (req, res) => {
   try {
     const user = auth.signup(req.body?.email, req.body?.password);
     auth.setSessionCookie(res, auth.createSession(user.id));
-    res.json({ email: user.email, plan: user.plan });
+    res.json({ email: user.email });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -132,7 +128,7 @@ app.post('/api/auth/login', authLimiter, (req, res) => {
   try {
     const user = auth.login(req.body?.email, req.body?.password);
     auth.setSessionCookie(res, auth.createSession(user.id));
-    res.json({ email: user.email, plan: user.plan });
+    res.json({ email: user.email });
   } catch (err) {
     res.status(401).json({ error: err.message });
   }
@@ -146,15 +142,12 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.get('/api/me', (req, res) => {
   if (!req.user) return res.json({ user: null });
-  const usage = apikeys.usageForUser(req.user.id, req.user.plan);
   res.json({
     user: {
       email: req.user.email,
-      plan: req.user.plan,
       createdAt: req.user.created_at,
-      apiUsage: usage,
-      bulkLimit: BULK_LIMITS[req.user.plan] || BULK_LIMITS.free,
-      billingConfigured: billing.isConfigured(),
+      apiUsage: apikeys.usageForUser(req.user.id),
+      bulkLimit: BULK_LIMIT,
       isAdmin: isAdmin(req.user.email),
     },
   });
@@ -221,15 +214,15 @@ app.post('/api/v1/scan', async (req, res) => {
 
 app.get('/api/v1/usage', (req, res) => {
   const rawKey = req.headers['x-api-key'];
-  if (!rawKey || !rawKey.startsWith('lsk_')) {
+  if (!rawKey || !rawKey.startsWith('lak_')) {
     return res.status(401).json({ error: 'Missing or malformed API key. Pass it in the X-Api-Key header.' });
   }
   const row = db.prepare(
-    `SELECT u.id AS userId, u.plan FROM api_keys k JOIN users u ON u.id = k.user_id
+    `SELECT u.id AS userId FROM api_keys k JOIN users u ON u.id = k.user_id
       WHERE k.key_hash = ? AND k.revoked_at IS NULL`
   ).get(crypto.createHash('sha256').update(rawKey).digest('hex'));
   if (!row) return res.status(401).json({ error: 'Invalid API key.' });
-  res.json(apikeys.usageForUser(row.userId, row.plan));
+  res.json(apikeys.usageForUser(row.userId));
 });
 
 /* ================= shareable reports ================= */
@@ -245,35 +238,6 @@ app.get('/api/report/:publicId', (req, res) => {
 
 app.get('/r/:publicId', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'report.html'));
-});
-
-/* ================= billing ================= */
-
-app.post('/api/billing/checkout', auth.requireUser, async (req, res) => {
-  if (!billing.isConfigured()) {
-    return res.status(503).json({
-      error: 'waitlist',
-      message: 'Paid plans are launching soon — join the waitlist and we will email you.',
-    });
-  }
-  if (req.user.plan === 'pro') {
-    return res.status(400).json({ error: 'You are already on the Pro plan.' });
-  }
-  try {
-    const session = await billing.createCheckoutSession(req.user);
-    res.json({ url: session.url });
-  } catch (err) {
-    res.status(502).json({ error: `Could not start checkout: ${err.message}` });
-  }
-});
-
-app.post('/api/billing/webhook', (req, res) => {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!billing.verifyWebhookSignature(req.rawBody || '', req.headers['stripe-signature'], secret)) {
-    return res.status(400).json({ error: 'Invalid webhook signature.' });
-  }
-  const outcome = billing.handleWebhookEvent(req.body);
-  res.json({ received: true, ...outcome });
 });
 
 /* ================= admin (site owner) ================= */
@@ -296,10 +260,10 @@ app.get('/api/admin/overview', requireAdmin, (_req, res) => {
     scans: db.prepare('SELECT COUNT(*) AS n FROM scans').get().n,
     scansToday: db.prepare(`SELECT COUNT(*) AS n FROM scans WHERE created_at >= date('now')`).get().n,
     apiKeys: db.prepare('SELECT COUNT(*) AS n FROM api_keys WHERE revoked_at IS NULL').get().n,
-    proUsers: db.prepare(`SELECT COUNT(*) AS n FROM users WHERE plan = 'pro'`).get().n,
+    apiScans: db.prepare(`SELECT COUNT(*) AS n FROM scans WHERE source = 'api'`).get().n,
   };
   const users = db.prepare(
-    `SELECT u.id, u.email, u.plan, u.created_at AS createdAt,
+    `SELECT u.id, u.email, u.created_at AS createdAt,
             COUNT(s.id) AS scanCount,
             MAX(s.created_at) AS lastScanAt,
             (SELECT COUNT(*) FROM api_keys k WHERE k.user_id = u.id AND k.revoked_at IS NULL) AS activeKeys
@@ -319,7 +283,7 @@ app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'ad
 /* ================= misc ================= */
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'LinkSentry', version: '2.0.0' });
+  res.json({ status: 'ok', service: 'Linkaware', version: '2.0.0' });
 });
 
 app.get('/dashboard', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
@@ -335,7 +299,6 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`LinkSentry running at http://localhost:${PORT}`);
-  console.log(`Billing: ${billing.isConfigured() ? 'Stripe configured' : 'waitlist mode (set STRIPE_SECRET_KEY + STRIPE_PRICE_ID to enable)'}`);
+  console.log(`Linkaware running at http://localhost:${PORT}`);
   console.log(`Google Safe Browsing: ${process.env.GSB_API_KEY ? 'ENABLED — blocklist checks active' : 'not configured (set GSB_API_KEY to enable)'}`);
 });

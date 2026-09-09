@@ -6,13 +6,13 @@
 #
 # To make data persistent later, upgrade to plan "starter" (~$7/mo) and add:
 #     disk:
-#       name: linksentry-data
+#       name: linkaware-data
 #       mountPath: /var/data
 #       sizeGB: 1
 # then set DATA_DIR=/var/data below.
 services:
   - type: web
-    name: linksentry
+    name: linkaware
     runtime: node
     plan: free
     buildCommand: npm ci

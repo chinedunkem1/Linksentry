@@ -1,7 +1,7 @@
 {
-  "name": "linksentry",
+  "name": "linkaware",
   "version": "1.0.0",
-  "description": "LinkSentry — professional URL safety scanner. Know before you click.",
+  "description": "Linkaware — professional URL safety scanner. Know before you click.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Documentation — LinkSentry</title>
-  <meta name="description" content="Integrate LinkSentry's URL safety scanning into your product with a simple REST API." />
+  <title>API Documentation — Linkaware</title>
+  <meta name="description" content="Integrate Linkaware's URL safety scanning into your product with a simple REST API." />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,12 +15,12 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="/">
-        <img src="/logo.svg" alt="LinkSentry logo" width="36" height="36" />
-        <span class="brand-name">Link<span class="brand-accent">Sentry</span></span>
+        <img src="/logo.svg" alt="Linkaware logo" width="36" height="36" />
+        <span class="brand-name">Link<span class="brand-accent">aware</span></span>
       </a>
       <nav class="site-nav">
         <a href="/#scanner">Scanner</a>
-        <a href="/#pricing">Pricing</a>
+        <a href="/#free">Free</a>
         <a href="/dashboard">Dashboard</a>
       </nav>
       <a href="/signup" class="btn btn-small">Get an API key</a>
@@ -30,24 +30,21 @@
   <main class="doc-main">
     <div class="container container-narrow">
       <h1>API documentation</h1>
-      <p class="doc-sub">Add link-safety scanning to your product with two REST endpoints. Create a free account, generate a key in the <a href="/dashboard" style="color:var(--accent)">dashboard</a>, and you're live in minutes.</p>
+      <p class="doc-sub">Add link-safety scanning to your product with two REST endpoints — completely free. Create an account, generate a key in the <a href="/dashboard" style="color:var(--accent)">dashboard</a>, and you're live in minutes.</p>
 
       <h2>Authentication</h2>
-      <p>Pass your API key in the <code>X-Api-Key</code> header on every request. Keys look like <code>lsk_…</code> and can be created and revoked from your dashboard.</p>
-      <pre class="code-block"><code>X-Api-Key: lsk_your_key_here</code></pre>
+      <p>Pass your API key in the <code>X-Api-Key</code> header on every request. Keys look like <code>lak_…</code> and can be created and revoked from your dashboard.</p>
+      <pre class="code-block"><code>X-Api-Key: lak_your_key_here</code></pre>
 
-      <h2>Quotas</h2>
-      <ul>
-        <li><strong>Free plan:</strong> 100 scans per calendar month</li>
-        <li><strong>Pro plan:</strong> 10,000 scans per calendar month</li>
-      </ul>
-      <p>Every response includes <code>X-Quota-Limit</code> and <code>X-Quota-Used</code> headers. Exceeding the quota returns <code>429</code>.</p>
+      <h2>Limits</h2>
+      <p>The API is free. Each key allows <strong>1,000 scans per calendar month</strong> — a fair-use cap so no single key drains the shared threat-feed budget, not a paywall. There is no paid tier that raises it; if you have a legitimate need for more, just ask.</p>
+      <p>Every response includes <code>X-Quota-Limit</code> and <code>X-Quota-Used</code> headers. Exceeding the limit returns <code>429</code>, and it resets on the 1st of each month.</p>
 
       <h2><span class="endpoint-tag">POST</span>/api/v1/scan</h2>
       <p>Scans a URL and returns the full analysis.</p>
       <h3>Request</h3>
       <pre class="code-block"><code>curl -X POST https://your-domain.com/api/v1/scan \
-  -H "X-Api-Key: lsk_your_key_here" \
+  -H "X-Api-Key: lak_your_key_here" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com/some-link"}'</code></pre>
 
@@ -98,7 +95,7 @@
       <h2><span class="endpoint-tag">GET</span>/api/v1/usage</h2>
       <p>Returns your current month's usage across all keys.</p>
       <pre class="code-block"><code>curl https://your-domain.com/api/v1/usage \
-  -H "X-Api-Key: lsk_your_key_here"
+  -H "X-Api-Key: lak_your_key_here"
 
 { "month": "2026-07", "used": 42, "quota": 10000 }</code></pre>
 
@@ -118,13 +115,13 @@
     <div class="container footer-inner">
       <div class="footer-brand">
         <img src="/logo.svg" alt="" width="28" height="28" />
-        <span>Link<span class="brand-accent">Sentry</span></span>
+        <span>Link<span class="brand-accent">aware</span></span>
       </div>
       <nav style="display:flex;gap:20px">
         <a href="/privacy" style="color:var(--text-dim);text-decoration:none;font-size:0.84rem">Privacy</a>
         <a href="/terms" style="color:var(--text-dim);text-decoration:none;font-size:0.84rem">Terms</a>
       </nav>
-      <p>© 2026 LinkSentry.</p>
+      <p>© 2026 Linkaware.</p>
     </div>
   </footer>
 </body>
