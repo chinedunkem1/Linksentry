@@ -381,6 +381,13 @@ a { color: inherit; }
   font-family: var(--font); font-size: 0.93rem; outline: none; transition: all 0.15s;
 }
 .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+/* Honeypot: invisible to people, irresistible to form-filling bots.
+   Kept out of the layout and the tab order rather than display:none, since
+   some bots skip fields that are explicitly hidden. */
+.hp-field {
+  position: absolute; left: -9999px; width: 1px; height: 1px;
+  overflow: hidden; opacity: 0; pointer-events: none;
+}
 .auth-alt { margin-top: 20px; text-align: center; font-size: 0.87rem; color: var(--text-dim); }
 .auth-alt a { color: var(--accent); text-decoration: none; }
 .form-error {

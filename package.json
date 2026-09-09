@@ -16,5 +16,8 @@
     "better-sqlite3": "^12.11.1",
     "express": "^4.19.2"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "qs": "^6.16.0"
+  }
 }

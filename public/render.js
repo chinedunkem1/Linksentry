@@ -9,27 +9,27 @@ window.LSRender = (() => {
       headline: 'No threats detected',
       color: 'var(--safe)',
       text: 'None of our checks raised a flag. Stay cautious anyway with pages that ask for passwords or payment details.',
-      icon: '<path d="M20 6 9 17l-5-5"/>',
+      icon: ['M20 6 9 17l-5-5'],
     },
     caution: {
       pill: 'Caution',
       headline: 'Worth a closer look',
       color: 'var(--caution)',
       text: 'This link shows traits often associated with unsafe sites. Read the findings below before you open it.',
-      icon: '<path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>',
+      icon: ['M12 9v4M12 17h.01', 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'],
     },
     dangerous: {
       pill: 'High risk',
       headline: 'This link looks dangerous',
       color: 'var(--danger)',
       text: 'Multiple strong risk indicators were found. We recommend you do not open this link.',
-      icon: '<path d="M18 6 6 18M6 6l12 12"/>',
+      icon: ['M18 6 6 18M6 6l12 12'],
     },
   };
 
-  const CHECK = '<path d="M20 6 9 17l-5-5"/>';
-  const WARN = '<path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>';
-  const DASH = '<path d="M5 12h14"/>';
+  const CHECK = ['M20 6 9 17l-5-5'];
+  const WARN = ['M12 9v4M12 17h.01', 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'];
+  const DASH = ['M5 12h14'];
 
   const $ = (id) => document.getElementById(id);
 
@@ -40,8 +40,11 @@ window.LSRender = (() => {
     return node;
   }
 
-  function icon(paths, size) {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  /** Builds an icon from path data — no innerHTML anywhere in this file. */
+  function icon(pathData, size) {
+    const svg = document.createElementNS(SVG_NS, 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('width', size);
     svg.setAttribute('height', size);
@@ -50,7 +53,11 @@ window.LSRender = (() => {
     svg.setAttribute('stroke-width', '2.4');
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
-    svg.innerHTML = paths;
+    for (const d of pathData) {
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', d);
+      svg.appendChild(path);
+    }
     return svg;
   }
 
@@ -81,7 +88,7 @@ window.LSRender = (() => {
 
     const flagged = data.reputation && data.reputation.flaggedBy.length > 0;
     rows.push({
-      label: 'Malware &amp; threat databases',
+      label: 'Malware & threat databases',
       state: flagged ? 'bad' : 'ok',
       value: flagged ? `Flagged by ${data.reputation.flaggedBy.join(', ')}` : 'Not detected',
     });
@@ -154,8 +161,7 @@ window.LSRender = (() => {
       rowsEl.replaceChildren();
       for (const row of summaryRows(data)) {
         const li = document.createElement('li');
-        const label = el('span', 'check-label');
-        label.innerHTML = row.label;
+        const label = el('span', 'check-label', row.label);
         const value = el('span', 'check-value ' + row.state);
         value.appendChild(icon(row.state === 'ok' ? CHECK : row.state === 'neutral' ? DASH : WARN, 14));
         value.appendChild(document.createTextNode(row.value));

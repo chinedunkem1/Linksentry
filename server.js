@@ -17,24 +17,28 @@ const db = require('./lib/db');
 const { scanUrl } = require('./lib/scanner');
 const auth = require('./lib/auth');
 const apikeys = require('./lib/apikeys');
+const sec = require('./lib/security');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
+// Node's built-in parser instead of qs: we never use nested query objects,
+// and it removes a whole class of query-parsing attacks.
+app.set('query parser', 'simple');
 
+app.use(sec.forceHttps);
+app.use(sec.securityHeaders);
+app.use(sec.jsonOnly);
 app.use(express.json({ limit: '64kb' }));
 
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Referrer-Policy', 'no-referrer');
-  next();
-});
-
 app.use(auth.attachUser);
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
 
 /* ---------------- rate limiting (in-memory, per IP) ---------------- */
 
@@ -54,6 +58,10 @@ function makeLimiter(max, windowMs, message) {
 
 const scanLimiter = makeLimiter(20, 60000, 'Rate limit reached — please wait a moment before scanning again.');
 const authLimiter = makeLimiter(10, 60000, 'Too many attempts — please wait a minute and try again.');
+// Account creation is the most abused endpoint on a public site, so it gets a
+// much tighter per-IP budget than sign-in.
+const signupLimiter = makeLimiter(5, 3600000, 'Too many accounts created from this network. Please try again later.');
+const formTokenLimiter = makeLimiter(60, 60000, 'Too many requests — please wait a moment.');
 
 /* ---------------- scan persistence ---------------- */
 
@@ -70,28 +78,26 @@ function saveScan(result, userId, source) {
 
 /* ================= scanning ================= */
 
-app.post('/api/scan', scanLimiter, async (req, res) => {
+app.post('/api/scan', scanLimiter, async (req, res, next) => {
   try {
-    const result = await scanUrl((req.body || {}).url);
+    const url = sec.requireString((req.body || {}).url, 'url', { max: 2048 });
+    const result = await scanUrl(url);
     saveScan(result, req.user?.id, 'web');
     res.json(result);
   } catch (err) {
-    res.status(400).json({ error: err.message || 'Scan failed. Please try again.' });
+    next(err);
   }
 });
 
 /* Fair-use batch size — keeps one request from monopolising the scanner. */
 const BULK_LIMIT = 25;
 
-app.post('/api/bulk-scan', auth.requireUser, async (req, res) => {
-  const urls = [...new Set((Array.isArray(req.body?.urls) ? req.body.urls : [])
-    .map((u) => String(u).trim()).filter(Boolean))];
-
-  if (urls.length === 0) return res.status(400).json({ error: 'Provide at least one URL.' });
-  if (urls.length > BULK_LIMIT) {
-    return res.status(400).json({
-      error: `Please scan at most ${BULK_LIMIT} URLs per batch (you submitted ${urls.length}). Split the list and run it again — there's no limit on how many batches you can do.`,
-    });
+app.post('/api/bulk-scan', auth.requireUser, async (req, res, next) => {
+  let urls;
+  try {
+    urls = sec.requireUrlList(req.body?.urls, BULK_LIMIT);
+  } catch (err) {
+    return next(err);
   }
 
   const results = new Array(urls.length);
@@ -114,29 +120,57 @@ app.post('/api/bulk-scan', auth.requireUser, async (req, res) => {
 
 /* ================= auth ================= */
 
-app.post('/api/auth/signup', authLimiter, (req, res) => {
+/*
+ * Issued when a public form renders; required back on submit (bot check).
+ * Deliberately on its own generous limiter — every page load spends one, and
+ * running out here would block legitimate sign-ins.
+ */
+app.get('/api/form-token', formTokenLimiter, (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ token: sec.issueFormToken() });
+});
+
+app.post('/api/auth/signup', signupLimiter, (req, res, next) => {
   try {
-    const user = auth.signup(req.body?.email, req.body?.password);
-    auth.setSessionCookie(res, auth.createSession(user.id));
+    sec.botCheck(req.body);
+    const email = sec.requireString(req.body?.email, 'email', { max: 254 });
+    const password = sec.requireString(req.body?.password, 'password', { max: 200, min: 8 });
+    const user = auth.signup(email, password);
+    auth.setSessionCookie(res, auth.createSession(user.id), sec.isSecureRequest(req));
     res.json({ email: user.email });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.bot) console.warn('[bot] signup blocked from', req.ip);
+    next(err);
   }
 });
 
-app.post('/api/auth/login', authLimiter, (req, res) => {
+app.post('/api/auth/login', authLimiter, (req, res, next) => {
+  let email;
   try {
-    const user = auth.login(req.body?.email, req.body?.password);
-    auth.setSessionCookie(res, auth.createSession(user.id));
+    sec.botCheck(req.body);
+    email = sec.requireString(req.body?.email, 'email', { max: 254 }).toLowerCase();
+    const password = sec.requireString(req.body?.password, 'password', { max: 200 });
+    sec.assertNotLocked(email);
+
+    const user = auth.login(email, password);
+    sec.clearFailures(email);
+    auth.setSessionCookie(res, auth.createSession(user.id), sec.isSecureRequest(req));
     res.json({ email: user.email });
   } catch (err) {
-    res.status(401).json({ error: err.message });
+    // Wrong credentials count towards the per-account lockout; malformed
+    // requests and bot rejections do not.
+    if (email && /Incorrect email or password/.test(err.message)) {
+      sec.recordFailure(email);
+      err.status = 401;
+      err.expose = true;
+    }
+    next(err);
   }
 });
 
 app.post('/api/auth/logout', (req, res) => {
   auth.destroySession(req.sessionToken);
-  auth.clearSessionCookie(res);
+  auth.clearSessionCookie(res, sec.isSecureRequest(req));
   res.json({ ok: true });
 });
 
@@ -170,12 +204,15 @@ app.delete('/api/history', auth.requireUser, (req, res) => {
 
 /* ================= API keys ================= */
 
-app.post('/api/keys', auth.requireUser, (req, res) => {
+app.post('/api/keys', auth.requireUser, (req, res, next) => {
   try {
-    const created = apikeys.createKey(req.user.id, req.body?.label);
+    const label = req.body?.label == null || req.body.label === ''
+      ? 'default'
+      : sec.requireString(req.body.label, 'label', { max: 60 });
+    const created = apikeys.createKey(req.user.id, label);
     res.json(created); // full key shown exactly once
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -183,18 +220,20 @@ app.get('/api/keys', auth.requireUser, (req, res) => {
   res.json({ keys: apikeys.listKeys(req.user.id) });
 });
 
-app.delete('/api/keys/:id', auth.requireUser, (req, res) => {
+app.delete('/api/keys/:id', auth.requireUser, (req, res, next) => {
   try {
-    apikeys.revokeKey(req.user.id, Number(req.params.id));
+    // revokeKey scopes the UPDATE by user_id, so one account can never
+    // revoke another account's key even by guessing ids.
+    apikeys.revokeKey(req.user.id, sec.requirePositiveInt(req.params.id, 'id'));
     res.json({ ok: true });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
 /* ================= developer API v1 ================= */
 
-app.post('/api/v1/scan', async (req, res) => {
+app.post('/api/v1/scan', async (req, res, next) => {
   let keyAuth;
   try {
     keyAuth = apikeys.authenticateKey(req.headers['x-api-key']);
@@ -204,11 +243,12 @@ app.post('/api/v1/scan', async (req, res) => {
   res.setHeader('X-Quota-Limit', keyAuth.quota);
   res.setHeader('X-Quota-Used', keyAuth.used);
   try {
-    const result = await scanUrl((req.body || {}).url);
+    const url = sec.requireString((req.body || {}).url, 'url', { max: 2048 });
+    const result = await scanUrl(url);
     saveScan(result, keyAuth.user.id, 'api');
     res.json(result);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -227,13 +267,17 @@ app.get('/api/v1/usage', (req, res) => {
 
 /* ================= shareable reports ================= */
 
-app.get('/api/report/:publicId', (req, res) => {
-  const row = db.prepare('SELECT result, created_at FROM scans WHERE public_id = ?')
-    .get(req.params.publicId);
-  if (!row) return res.status(404).json({ error: 'Report not found.' });
-  const result = JSON.parse(row.result);
-  result.reportId = req.params.publicId;
-  res.json(result);
+app.get('/api/report/:publicId', (req, res, next) => {
+  try {
+    const publicId = sec.requirePublicId(req.params.publicId);
+    const row = db.prepare('SELECT result FROM scans WHERE public_id = ?').get(publicId);
+    if (!row) return res.status(404).json({ error: 'Report not found.' });
+    const result = JSON.parse(row.result);
+    result.reportId = publicId;
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.get('/r/:publicId', (_req, res) => {
@@ -296,6 +340,26 @@ app.get('/terms', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'te
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found.' });
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
+/**
+ * Central error handler. Only messages explicitly marked safe reach the
+ * client; anything unexpected is logged server-side and returned as a
+ * generic message so internals (paths, SQL, stack traces) never leak.
+ */
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  const status = err.status || 500;
+  const safe = err.expose === true || status < 500;
+
+  if (status >= 500) {
+    console.error('[error]', req.method, req.path, '-', err.stack || err.message);
+  }
+  if (res.headersSent) return;
+
+  res.status(status).json({
+    error: safe && err.message ? err.message : 'Something went wrong. Please try again.',
+  });
 });
 
 app.listen(PORT, () => {
