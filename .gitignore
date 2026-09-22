@@ -2,3 +2,6 @@ node_modules/
 data/
 .env
 *.log
+
+# Local editor/tool config
+.claude/
